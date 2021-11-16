@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option csharp_namespace = "azicloud.res";
+
+
+service WikiCategory {
+	rpc Filter_Rows1(NullRequest) returns (stream CategoryModel){
+		
+	}      
+}
+
+message NullRequest{
+
+}
+
+message CategoryModel {
+   int32 id =1;
+   string name=2;
+   string description=3;
+}
