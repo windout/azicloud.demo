@@ -31,26 +31,13 @@ namespace azicloud.res.Controllers
             return Ok(await _wikiCategoryService.Delete1(id));
         }
         [HttpPost("create")]
-        public async Task<IActionResult> Create1([FromForm]CategoryCreate create)
+        public async Task<IActionResult> Create1([FromForm]Category category)
         {
-            Category category = new Category()
+            if(category.Id <= 0)
             {
-                Id = -1,
-                Name = create.Name,
-                Description = create.Description
-            };
+                category.Id = -1;
+            }                
             return Ok(await _wikiCategoryService.Create1(category));
-        }
-        [HttpPut("{id}/update")]
-        public async Task<IActionResult> Update([FromRoute]int id, [FromForm] CategoryCreate create)
-        {
-            Category category = new Category()
-            {
-                Id = id,
-                Name = create.Name,
-                Description = create.Description
-            };
-            return Ok(await _wikiCategoryService.Create1(category));
-        }
+        }      
     }
 }
