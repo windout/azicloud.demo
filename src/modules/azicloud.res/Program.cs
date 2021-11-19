@@ -1,50 +1,53 @@
-using Microsoft.AspNetCore.Hosting;
+using azicloud.res.Application.Interfaces;
+using azicloud.res.Application.Responsitory;
+using azicloud.res.bo;
+using azicloud.res.GrpcServices;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using System;
 using System.Net;
 
-namespace azicloud.res
+var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(option =>
 {
-    public class Program
+    option.ListenAnyIP(7076, configure =>
     {
-        public static void Main(string[] args)
-        {
-            CreateHostBuilder(args).Build().Run();
-        }       
+        configure.UseHttps();
+        configure.Protocols = HttpProtocols.Http1;
+    });
+    option.ListenAnyIP(5076, configure =>
+    {       
+        configure.Protocols = HttpProtocols.Http1;
+    });
+    option.ListenAnyIP(7086, configure =>
+    {
+        configure.UseHttps();
+        configure.Protocols = HttpProtocols.Http2;
+    });
+});
+// Add services to the container.
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.ConfigureKestrel(options =>
-                    {
-                        options.Listen(IPAddress.Any, 5001, listenOptions =>
-                        {
-                            listenOptions.Protocols = HttpProtocols.Http2;
-                            
-                        });
-                    });
-                    webBuilder.UseStartup<Startup>();
-                });
+builder.Services.AddControllers();
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddGrpc();
+builder.Services.AddResService(builder.Configuration.GetConnectionString("db_task"));
+builder.Services.AddTransient<IWikiCategoryService, WikiCategoryService>();
 
-        private static (int httpPort, int grpcPort) GetDefinedPorts(IConfiguration config)
-        {
-            var port = config.GetValue("PORT", -1);
-            if (port == -1)
-            {
-                var aspnetcoreUris = config.GetValue("APSNETCORE_URLS", "");
-                if (!string.IsNullOrEmpty(aspnetcoreUris))
-                {
-                    if (Uri.TryCreate(aspnetcoreUris, UriKind.Absolute, out Uri uri))
-                    {
-                        port = uri.Port;
-                    }
-                }
-            }
-            var grpcPort = config.GetValue("GRPC_PORT",port+1);
-            return (port, grpcPort);
-        }
-    }
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
+app.UseHttpsRedirection();
+
+//app.UseAuthorization();
+
+app.MapControllers();
+app.MapGrpcService<WikiCategoryGrpcService>();
+
+app.Run();
